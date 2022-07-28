@@ -20,7 +20,7 @@ resource "aws_iam_role" "lambda_role" {
   }
 }
 
-data "aws_iam_policy_document" "lab_lambda_for_rekognition" {
+data "aws_iam_policy_document" "lambda_for_rekognition" {
   statement {
     sid = "LambdaForRekognition"
     actions = [
@@ -33,3 +33,13 @@ data "aws_iam_policy_document" "lab_lambda_for_rekognition" {
   }
 }
 
+resource "aws_iam_policy" "lambda_for_rekognition_policy" {
+  name = "lambda-for-rekognition"
+  description = "Allow Lambda function to use rekognition"
+  policy = data.aws_iam_policy_document.lambda_for_rekognition.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda" {
+  role = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_for_rekognition_policy.arn
+}
