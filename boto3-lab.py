@@ -13,6 +13,8 @@ response = s3_client.list_buckets()
 #    print(data["Name"])
 
 
-s3 = boto3.resource('s3')
-bucket_versioning = s3.BucketVersioning('bucket_name')
-#print(bucket_versioning)
+bucket_version = s3_client.get_bucket_versioning(
+                Bucket='talent-academy-silpa-lab-tfstates'
+                )
+
+print(json.dumps(bucket_version,default='str'))
