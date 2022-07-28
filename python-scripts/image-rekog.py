@@ -1,7 +1,7 @@
 import boto3
 
 def lambda_handler(events,context):
-    #client = boto3.client("rekognition")
+    client = boto3.client("rekognition")
     
     for record in event["Records"]:
         bucket_name=record["s3"]["bucket"]["name"]
