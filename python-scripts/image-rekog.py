@@ -21,11 +21,11 @@ def lambda_handler(event, context):
     eye_glasses=0
     sun_glasses=0
     Mustache_face=0
-
-    print(number_of_faces)
+    
+    #print(number_of_faces)
 
     response = client.detect_faces(Image={'S3Object':{'Bucket':bucket_name,'Name':image_obj}},Attributes=['ALL'])
-
+    
     faces = response["FaceDetails"]
 
     number_of_faces = len(faces)
@@ -36,24 +36,33 @@ def lambda_handler(event, context):
             male_face += 1
         elif face["Gender"]["Value"] == "Female":
             female_face += 1
-    
-    for face in faces:
-        if face["Eyeglasses"]["Value"] == "true":
+
+    for face in faces:   
+        if face["Eyeglasses"]["Value"] != False:
             eye_glasses +=1
 
-    for face in faces:
-        if face["Mustache"]["Value"] == "true":
+    for face in faces: 
+        if face["Mustache"]["Value"] != False:
             Mustache_face +=1
 
     for face in faces:
-        if face["Sunglasses"]["Value"] == "true":
+        if face["Sunglasses"]["Value"] != False:
             sun_glasses +=1
+    
+    
+        #print("the landmark is", str(face[Landmarks][Type]))
+
+    print(male_face)
+    print(female_face)
+    print(eye_glasses)
+    print(Mustache_face)
+    print(sun_glasses)
 
     table = dynamodb_resource.Table(metadata_table)
 
     metadata = {
         "filename": image_obj,
-        "amount_of_faces": amount_of_faces,
+        "number_of_faces": number_of_faces,
         "male_faces": male_face,
         "female_faces": female_face,
         "eye_glasses": eye_glasses,
