@@ -1,5 +1,5 @@
-resource "aws_iam_role" "lambda_role" {
-  name = "lab-lambda-assume-role"
+resource "aws_iam_role" "lab_lambda_role" {
+  name = "lab-lambda-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -16,7 +16,7 @@ resource "aws_iam_role" "lambda_role" {
   })
 
   tags = {
-    tag-key = "lab-lambda-assume-role"
+    tag-key = "lab-lambda-role"
   }
 }
 
@@ -25,11 +25,37 @@ data "aws_iam_policy_document" "lambda_for_rekognition" {
     sid = "LambdaForRekognition"
     actions = [
       "rekognition:*",
-      #"logs:CreateLogGroup",
-      #"logs:CreateLogStream",
-      #"logs:PutLogEvents"
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
     ]
     resources = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "lambda_for_s3_access" {
+  statement {
+    sid = "LambdaAccessS3Bucket"
+    actions = [
+      "s3:ListBucket",
+      "s3:GetObject"
+    ]
+    resources = [
+      "arn:aws:s3:::${aws_s3_bucket.lab_image_lambda_bucket.bucket}",
+      "arn:aws:s3:::${aws_s3_bucket.lab_image_lambda_bucket.bucket}/*"
+    ]
+  }
+}
+
+data "aws_iam_policy_document" "lambda_for_dynamodb" {
+  statement {
+    sid = "LambdaAccessdynamoDB"
+    actions = [
+      "dynamodb:PutItem"
+    ]
+    resources = [
+      aws_dynamodb_table.lambda_image_rekognition.arn
+    ]
   }
 }
 
@@ -39,7 +65,37 @@ resource "aws_iam_policy" "lambda_for_rekognition_policy" {
   policy = data.aws_iam_policy_document.lambda_for_rekognition.json
 }
 
+resource "aws_iam_policy" "lambda_for_s3_access_policy" {
+  name = "lambda-for-s3-access"
+  description = "Allow Lambda function to access S3 bucket and objects"
+  policy = data.aws_iam_policy_document.lambda_for_s3_access.json
+}
+
+resource "aws_iam_policy" "lambda_for_dynamodb_policy" {
+  name = "lambda-for-dynamodb"
+  description = "Allow Lambda function to write item into dynamoDB"
+  policy = data.aws_iam_policy_document.lambda_for_dynamodb.json
+}
+
 resource "aws_iam_role_policy_attachment" "lambda" {
-  role = aws_iam_role.lambda_role.name
+  role = aws_iam_role.lab_lambda_role.name
   policy_arn = aws_iam_policy.lambda_for_rekognition_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_access_s3" {
+  role = aws_iam_role.lab_lambda_role.name
+  policy_arn = aws_iam_policy.lambda_for_s3_access_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_write_dynamodb" {
+  role = aws_iam_role.lab_lambda_role.name
+  policy_arn = aws_iam_policy.lambda_for_dynamodb_policy.arn
+}
+
+resource "aws_lambda_permission" "allow_bucket" {
+  statement_id  = "AllowExecutionFromS3Bucket"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.lambda_image_rekog.arn
+  principal     = "s3.amazonaws.com"
+  source_arn    = aws_s3_bucket.lab_image_lambda_bucket.arn
 }
